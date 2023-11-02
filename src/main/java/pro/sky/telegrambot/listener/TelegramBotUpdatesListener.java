@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static pro.sky.telegrambot.constants.Constants.ANSWER_START;
 import static pro.sky.telegrambot.constants.Constants.START;
 
 @Service
@@ -40,37 +39,40 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         updates.forEach(update -> {
             log.info("Processing update: {}", update);
-//          получаем команду от клиента и кладем в переменную
-            String updateText = update.message().text();
-//          получаем уникальный идентификатор чата и кладем в переменную
-            Long chatId = update.message().chat().id();
+//          получаем команду от пользователя
+            String userMessageText = update.message().text();
+//          получаем уникальный идентификатор чата, из которого отправлено сообщение
+            Long userChatId = update.message().chat().id();
+//          получаем имя пользователя
+            String userName = update.message().chat().firstName();
 //          отпраляем ответ пользователю на его команду "/start"
-            if (updateText.equals(START)) {
-                log.info("The \"{}\" command was received", updateText);
-                responseMaker(chatId, ANSWER_START);
+            if (userMessageText.equals(START)) {
+                log.info("The \"{}\" command was received", userMessageText);
+                sendMessage(userChatId,
+                        "Привет, " + userName + "! Добро пожаловать в самый лучший в мире чат-бот!");
             }
 //          создаем паттерн для распознавания даты и текста напоминания
             Pattern pattern = Pattern.compile("([0-9\\.\\:\\s]{16})(\\s)([\\W+]+)");
 //          выполняем поиск совпадений с паттерном
-            Matcher matcher = pattern.matcher(updateText);
+            Matcher matcher = pattern.matcher(userMessageText);
 
 //          если команда соответствует паттерну, вычленяем нужные нам фрагменты, формируем обьект и сохраняем его в БД
             if (matcher.matches()) {
-                log.info("A command corresponding to the pattern was received. Command: \"{}\"", updateText);
+                log.info("A command corresponding to the pattern was received. Command: \"{}\"", userMessageText);
                 String dateTimeStr = matcher.group(1);
                 LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr,
                         DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
                 String notificationMessage = matcher.group(3);
-                notificationTaskRepository.save(new NotificationTask(chatId, notificationMessage, dateTime));
+                notificationTaskRepository.save(new NotificationTask(userChatId, notificationMessage, dateTime));
                 log.info("Notification created and saved to database");
-                responseMaker(chatId, "Уведомление создано");
+                sendMessage(userChatId, "Уведомление \"" + userMessageText + "\" создано!");
             }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
     //  метод для формирования ответа и отправки его пользователю
-    private void responseMaker(Long chatId, String responseMessage) {
+    private void sendMessage(Long chatId, String responseMessage) {
         SendMessage sendMessage = new SendMessage(chatId, responseMessage);
         telegramBot.execute(sendMessage);
         log.info("The message \"{}\" was sent to the user", responseMessage);
