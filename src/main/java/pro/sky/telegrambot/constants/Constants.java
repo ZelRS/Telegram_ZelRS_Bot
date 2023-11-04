@@ -1,5 +1,6 @@
 package pro.sky.telegrambot.constants;
 
 public class Constants {
-    public final static String START = "/start";
+    public static final String START = "/start";
+    public static final String NOTIFICATION = "/notify";
 }
