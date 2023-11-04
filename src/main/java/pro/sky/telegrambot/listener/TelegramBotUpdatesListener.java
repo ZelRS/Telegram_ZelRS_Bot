@@ -64,12 +64,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             "Напишите уведомление в формате (чч.мм.гггг чч:мм Текст), "
                                     + " и мы отправим вам сообщение-напоминалку равно в этот срок");
                     break;
-//                default:
-//                    log.info("The \"{}\" command was received. Unknown command", userMessageText);
-//                    sendMessage(userChatId,
-//                            "Я не знаю такой команды...");
-//                    break;
             }
+
+
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
@@ -81,13 +78,22 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         Collection<NotificationTask> actual = notificationTaskRepository.findAllByDateTimeEquals(now);
         log.info("The following sample was obtained: {}", actual);
+        sendNotify(actual);
+    }
+
+//  метод проходит по списку всех, вытащенных записей из БД, и высылает уведомления в соответствующие чаты
+    private void sendNotify(Collection<NotificationTask> actual) {
+        for (NotificationTask nt : actual) {
+            sendMessage(nt.getChatId(),
+                    "Внимание! Сработало напоминание! \n\"" + nt.getNotificationMessage() + "\"");
+        }
     }
 
     //  метод для формирования ответа и отправки его пользователю
     private void sendMessage(Long chatId, String textToSend) {
         SendMessage sendMessage = new SendMessage(chatId, textToSend);
         telegramBot.execute(sendMessage);
-        log.info("The message \"{}\" was sent to the user", textToSend);
+        log.info("The message \"{}\" was sent to chat with id={}", textToSend, chatId);
     }
 
     //  метод для определения паттерна уведомления и сохранения его в БД
