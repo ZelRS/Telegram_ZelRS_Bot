@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static pro.sky.telegrambot.constants.Constants.*;
+import static pro.sky.telegrambot.constants.Constants.NOTIFICATION_PATTERN;
 
 /*  данный сервис работает с поступаемыми от пользователя командами, если выясняется
  *  их соответствие нижеуказанному паттерну.
@@ -43,15 +43,17 @@ public class NotificationTaskServiceImpl implements NotificationTaskService {
         //  если команда соответствует паттерну, вычленяем нужные нам фрагменты, формируем обьект и сохраняем его в БД
         if (matcher.matches()) {
             log.info("A command corresponding to the pattern was received. Command: \"{}\"", userMessageText);
-            String dateTimeStr = matcher.group(1);
+
+            String dateTimeStr = matcher.group(1) + matcher.group(2) + matcher.group(3);
+            String notificationMessage = matcher.group(5);
             LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr,
                     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-            String notificationMessage = matcher.group(3);
+
             notificationTaskRepository.save(new NotificationTask(userChatId, notificationMessage, dateTime));
             log.info("Notification created and saved to database");
-            SendMessage sendMessage = new SendMessage(userChatId,
-                    "Уведомление \"" + userMessageText + "\" создано!");
-            telegramBot.execute(sendMessage);
+
+            telegramBot.execute(new SendMessage(userChatId,
+                    "Уведомление \"" + userMessageText + "\" создано!"));
         }
     }
 
@@ -68,9 +70,8 @@ public class NotificationTaskServiceImpl implements NotificationTaskService {
     //  метод проходит по списку всех, вытащенных записей из БД, и высылает уведомления в соответствующие чаты
     private void sendNotify(Collection<NotificationTask> actual) {
         for (NotificationTask nt : actual) {
-            SendMessage sendMessage = new SendMessage(nt.getChatId(),
-                    "Внимание! Сработало напоминание! \n\"" + nt.getNotificationMessage() + "\"");
-            telegramBot.execute(sendMessage);
+            telegramBot.execute(new SendMessage(nt.getChatId(),
+                    "Внимание! Сработало напоминание! \n\"" + nt.getNotificationMessage() + "\""));
             log.info("The message \"{}\" was sent to chat with id={}", nt.getNotificationMessage(), nt.getChatId());
         }
     }

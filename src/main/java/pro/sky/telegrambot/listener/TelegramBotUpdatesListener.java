@@ -40,7 +40,23 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             //  получаем имя пользователя
             String userName = update.message().chat().firstName();
 
-            //  отпраляем ответы пользователю на его команды"
+            /*  вызывается метод проверки, является ли полученное сообщение тэгом, т.е. начинается на "/" и
+             * если является - происходит формированием ответа в зависимости от команды после "/" */
+            checkTag(userChatId, userName, userMessageText);
+
+            /*  вызывается метод сервиса уведомлений, который проверит получаемое сообщение на соответствие паттерну
+             *  уведомления и, если соответствие будет выявлено, сохранит в БД.
+             *  Так же производится мониторинг акутальных записей и
+             *  и рассылка уведомлений в нужное время в нужные чаты*/
+            notificationTaskService.notificationMaker(userChatId, userMessageText);
+        });
+        return UpdatesListener.CONFIRMED_UPDATES_ALL;
+    }
+
+    /* метод проверяется, что от пользователя пришло сообщение, которое начинается с тэга ("/")
+     * и формирует ответ в зависимости от команды после тэга */
+    private void checkTag(Long userChatId, String userName, String userMessageText) {
+        if (userMessageText.startsWith("/")) {
             switch (userMessageText) {
                 case START:
                     log.info("The \"{}\" command was received", userMessageText);
@@ -53,21 +69,22 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             "Напишите уведомление в формате (чч.мм.гггг чч:мм Текст), "
                                     + " и мы отправим вам сообщение-напоминалку четко в срок");
                     break;
+                case HELP:
+                    log.info("The \"{}\" command was received", userMessageText);
+                    sendMessage(userChatId,
+                            "К сожалению, пока во мне есть только функционал создания напоминаний." +
+                                    "Чтобы узнать подробности, введите команду /notify");
+                    break;
+                default:
+                    sendMessage(userChatId,
+                            "Я не знаю такой команды...");
             }
-
-            /*  вызывается метод сервиса уведомлений, который проверит получаемое сообщение на соответствие паттерну
-             *  уведомления и, если соответствие будет выявлено, сохранит в БД.
-             *  Так же производится мониторинг акутальных записей и
-             *  и рассылка уведомлений в нужное время в нужные чаты*/
-            notificationTaskService.notificationMaker(userChatId, userMessageText);
-        });
-        return UpdatesListener.CONFIRMED_UPDATES_ALL;
+        }
     }
 
     //  метод для формирования ответа и отправки его пользователю
     private void sendMessage(Long chatId, String textToSend) {
-        SendMessage sendMessage = new SendMessage(chatId, textToSend);
-        telegramBot.execute(sendMessage);
+        telegramBot.execute(new SendMessage(chatId, textToSend));
         log.info("The message \"{}\" was sent to chat with id={}", textToSend, chatId);
     }
 }
