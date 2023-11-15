@@ -1,5 +1,9 @@
 package pro.sky.telegrambot.service.impl;
 
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.request.KeyboardButton;
+import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
+import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,7 +16,8 @@ import pro.sky.telegrambot.service.CommandHandlerService;
 import pro.sky.telegrambot.service.NotificationTaskService;
 import pro.sky.telegrambot.util.MessageUtil;
 
-import static pro.sky.telegrambot.constants.CommandConstants.*;
+import static pro.sky.telegrambot.constants.CommandConstants.CREATE_NOTIFICATION;
+import static pro.sky.telegrambot.constants.CommandConstants.START;
 
 @Service
 @RequiredArgsConstructor
@@ -22,23 +27,32 @@ public class CommandHandlerServiceImpl implements CommandHandlerService {
 
     private final TelegramBotConfiguration tbc;
 
+    private final TelegramBot telegramBot;
+
     /* метод проверяет пришедшую от пользователя команду и, опираясь на нее, возвращает необходимую строку
      * метод processUpdate() класса TelegramBotUpdatesListener */
-    public String handleCommand(Long chatId, String userName, String command) {
+    public void handleCommand(Long chatId, String userName, String command) {
+        log.info("The \"{}\" command was received", command);
         switch (command) {
             case START:
-                log.info("The \"{}\" command was received", command);
-                return tbc.getStartMsg();
-            case HELP:
-                log.info("The \"{}\" command was received", command);
-                return tbc.getHelpMsg();
-            case NOTIFICATION:
-                log.info("The \"{}\" command was received", command);
-                return tbc.getNotifyMsg();
+                SendMessage sendStartMsg = new SendMessage(chatId, tbc.getStartMsg())/*.parseMode(HTML)*/;
+
+                setButton(sendStartMsg, CREATE_NOTIFICATION);
+
+                telegramBot.execute(sendStartMsg);
+                log.info("The message \"{}\" was sent to chat with id={}", tbc.getStartMsg(), chatId);
+                break;
+            case CREATE_NOTIFICATION:
+                SendMessage sendNotificationMsg = new SendMessage(chatId, tbc.getNotifyMsg())/*.parseMode(HTML)*/;
+
+                telegramBot.execute(sendNotificationMsg);
+                log.info("The message \"{}\" was sent to chat with id={}", tbc.getNotifyMsg(), chatId);
+                break;
             default:
-                log.info("The \"{}\" command was received", command);
-                // дефолтный вариант вызывает метод для проверки, формирования и сохранения уведомления в БД
-                return handleCreateTaskCommand(chatId, command);
+                String defMsg = handleCreateTaskCommand(chatId, command);
+                telegramBot.execute(new SendMessage(chatId, defMsg));
+                log.info("The message \"{}\" was sent to chat with id={}", defMsg, chatId);
+                break;
         }
     }
 
@@ -61,5 +75,9 @@ public class CommandHandlerServiceImpl implements CommandHandlerService {
             log.info("The user entered an unknown command");
             return tbc.getExceptionUnknownMsg();
         }
+    }
+
+    private void setButton(SendMessage sendMessage, String buttonText) {
+        sendMessage.replyMarkup(new ReplyKeyboardMarkup(new KeyboardButton(buttonText)));
     }
 }

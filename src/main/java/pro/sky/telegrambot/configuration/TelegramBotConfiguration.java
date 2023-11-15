@@ -17,9 +17,6 @@ public class TelegramBotConfiguration {
     @Value("${telegram.bot.msg.start}")
     private String startMsg;
 
-    @Value("${telegram.bot.msg.help}")
-    private String helpMsg;
-
     @Value("${telegram.bot.msg.notify}")
     private String notifyMsg;
 
@@ -34,6 +31,7 @@ public class TelegramBotConfiguration {
 
     @Value("${telegram.bot.msg.exception.unknown}")
     private String exceptionUnknownMsg;
+
 
     @Bean
     public TelegramBot telegramBot() {
