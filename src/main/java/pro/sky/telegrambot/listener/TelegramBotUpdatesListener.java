@@ -35,7 +35,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     /* метод вытаскивет у пришедшего апдейта необходимые данные и отправляет их в хэндлер,
      * затем формирует строку и отправлет необходимые данные в метод отправки ответа */
     private void processUpdate(Update update) {
-        log.info("Processing update: {}", update);
+        log.info("Processing update from user: {} {}", update.message().chat().firstName(), update.message().chat().lastName());
         //  получаем команду от пользователя
         String text = update.message().text();
         //  получаем уникальный идентификатор чата, из которого отправлено сообщение
