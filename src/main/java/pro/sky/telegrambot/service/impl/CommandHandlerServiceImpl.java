@@ -1,8 +1,7 @@
 package pro.sky.telegrambot.service.impl;
 
 import com.pengrad.telegrambot.TelegramBot;
-import com.pengrad.telegrambot.model.request.KeyboardButton;
-import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +15,12 @@ import pro.sky.telegrambot.service.CommandHandlerService;
 import pro.sky.telegrambot.service.NotificationTaskService;
 import pro.sky.telegrambot.util.MessageUtil;
 
-import static pro.sky.telegrambot.constants.CommandConstants.CREATE_NOTIFICATION;
+import static com.pengrad.telegrambot.model.request.ParseMode.HTML;
+import static pro.sky.telegrambot.constants.ButtonConstants.*;
 import static pro.sky.telegrambot.constants.CommandConstants.START;
+import static pro.sky.telegrambot.keyboard.InlineKeyboard.createInlineButtonsRow;
+import static pro.sky.telegrambot.keyboard.InlineKeyboard.setInlineKeyboard;
+import static pro.sky.telegrambot.keyboard.ReplyKeyboard.setReplyKeyboard;
 
 @Service
 @RequiredArgsConstructor
@@ -35,15 +38,43 @@ public class CommandHandlerServiceImpl implements CommandHandlerService {
         log.info("The \"{}\" command was received", command);
         switch (command) {
             case START:
-                SendMessage sendStartMsg = new SendMessage(chatId, tbc.getStartMsg())/*.parseMode(HTML)*/;
+                SendMessage sendStartMsg = new SendMessage(chatId, tbc.getStartMsg()).parseMode(HTML);
 
-                setButton(sendStartMsg, CREATE_NOTIFICATION);
+//                setReplyKeyboard(sendStartMsg, PROFILE, SIGN_UP, CREATE_NOTIFICATION);
+
+                //   создаем первый ряд кнопок встроенной в сообщение клавиатуры
+                createInlineButtonsRow(
+                        new InlineKeyboardButton("тык1").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык2").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык3").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык4").callbackData("ТЫК")
+                );
+                //  создаем второй ряд кнопок встроенной в сообщение клавиатуры
+                createInlineButtonsRow(
+                        new InlineKeyboardButton("тык1").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык2").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык3").callbackData("ТЫК"),
+                        new InlineKeyboardButton("тык4").callbackData("ТЫК")
+                );
+                //  устанавливаем встроенную в сообщение клавиатуру
+                setInlineKeyboard(sendStartMsg);
+                /*  устанавливаем клавиатуру под строкой ввода ВАЖНО! Данный метод следует вызывать, строго после установки InlineKeyBoard
+                 *   воизбежание сохранения старой клавиатуры после ее изменения/удаления */
+                setReplyKeyboard(sendStartMsg, PROFILE, SIGN_UP, CREATE_NOTIFICATION);
 
                 telegramBot.execute(sendStartMsg);
-                log.info("The message \"{}\" was sent to chat with id={}", tbc.getStartMsg(), chatId);
+                log.info("The START message was sent to chat with id={}", userName);
+                break;
+            case PROFILE:
+                telegramBot.execute(new SendMessage(chatId, "Я пока не умею это делать... Но скоро научусь!"));
+                // код для отображения профиля пользователя
+                break;
+            case SIGN_UP:
+                telegramBot.execute(new SendMessage(chatId, "Я пока не умею это делать... Но скоро научусь!"));
+                // код записи клиентов (бронирование даты и времени)
                 break;
             case CREATE_NOTIFICATION:
-                SendMessage sendNotificationMsg = new SendMessage(chatId, tbc.getNotifyMsg())/*.parseMode(HTML)*/;
+                SendMessage sendNotificationMsg = new SendMessage(chatId, tbc.getNotifyMsg()).parseMode(HTML);
 
                 telegramBot.execute(sendNotificationMsg);
                 log.info("The message \"{}\" was sent to chat with id={}", tbc.getNotifyMsg(), chatId);
@@ -75,9 +106,5 @@ public class CommandHandlerServiceImpl implements CommandHandlerService {
             log.info("The user entered an unknown command");
             return tbc.getExceptionUnknownMsg();
         }
-    }
-
-    private void setButton(SendMessage sendMessage, String buttonText) {
-        sendMessage.replyMarkup(new ReplyKeyboardMarkup(new KeyboardButton(buttonText)));
     }
 }
